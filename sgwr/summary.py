@@ -118,3 +118,4 @@ def summarySGWR(self):
 
     summary += '=' * 75 + '\n'
     return summary
+

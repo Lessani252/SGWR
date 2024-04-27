@@ -68,30 +68,24 @@ class ALPHA_OPT(GLM):
             similarity_matrices.append(dist_mat)
         combined = np.sum(similarity_matrices, axis=0)
         combined = np.divide(combined, len(similarity_matrices))
-        w2 = np.exp(-combined ** 2)  ### first version of the manuscript
-        # w2 = np.exp(-0.5 * (combined))  ### new version of the manuscript
-        # w2 = np.squeeze(w2)  #### reshape (1, n) > (n,)
+        w2 = np.exp(-combined ** 2)
+        w2 = np.squeeze(w2)
         ############# Geographically weighted
-        if bw == np.inf:
-            w1 = np.ones((self.n))
-
+        dis = np.sqrt(np.sum((self.coords[i] - self.coords) ** 2, axis=1))
+        dis = np.squeeze(dis)
+        if self.fixed:
+            w1 = np.exp(-0.5 * (dis / bw) ** 2).reshape(-1, 1)
             alpha_ = self.bt_value
-            beta_ = 1 - alpha_
 
+            beta_ = 1 - alpha_
 
             W_combined = alpha_ * w1 + beta_ * w2
             wi = W_combined / W_combined.max()
-        try:
-            dis = np.sqrt(np.sum((self.coords[i] - self.coords) ** 2, axis=1))
-            dis = np.squeeze(dis)
-
-            epsV = 1.0000001
-
-            BW = np.partition(dis, int(bw) - 1)[int(bw) - 1] * epsV
-
-            dis1 = dis / BW
-            w1 = np.exp(-0.5 * (dis1) ** 2)
-            w1 = w1.reshape(-1, 1)
+        else:
+            maxd = np.partition(dis, int(bw) - 1)[int(bw) - 1] * 1.0000001
+            wegt = dis / maxd
+            wegt[wegt >= 1] = 1
+            w1 = ((1 - (wegt) ** 2) ** 2).reshape(-1, 1)
             w1 = np.squeeze(w1)
 
             ###########################
@@ -101,11 +95,8 @@ class ALPHA_OPT(GLM):
             W_combined = alpha_ * w1 + beta_ * w2
 
             wi = W_combined / W_combined.max()
-
-        except BaseException:
-            raise
-
         return wi
+
 
     def local_fitting(self, i):
         wi = self.weight_func(i, self.bw).reshape(-1, 1)
@@ -145,6 +136,7 @@ class ALPHA_OPT(GLM):
                 Si = None
 
             return influ, resid, predy, betas, w, Si, tr_STS_i, CCT
+
 
     def alpha_opt_serial(self):
         influ_ = []
@@ -226,6 +218,7 @@ class ALPHA_OPT(GLM):
         S = self.comm.bcast(S, root=0)
 
         return influ_lis, resdi_lis, predy_lis, params, w_lis, S, tr_sts, CCT_lis
+
 
     def fit_func(self, ini_params=None, tol=1.0e-5, max_iter=20, solve='iwls',
                  lite=False, pool=None):
@@ -684,6 +677,7 @@ class SGWRResults(GLMResults):
 
         return summaryModel(self) + summaryGLM(self) + summarySGWR(self)
 
+
 class SGWRResultsLite(object):
     def __init__(self, model, resid, influ, params):
         self.y = model.y
@@ -782,14 +776,13 @@ class SGWR:
         """
 
         input = np.genfromtxt(self.fname, dtype=float, delimiter=',', skip_header=True)
-        self.y = input[:, 4].reshape(-1, 1)
+        self.y = input[:, 2].reshape(-1, 1)
         self.n = input.shape[0]
 
         if self.constant:
-            self.X = np.hstack([np.ones((self.n, 1)), input[:, 5:]])
+            self.X = np.hstack([np.ones((self.n, 1)), input[:, 3:]])
         else:
-            self.X = input[:, 5:]
-
+            self.X = input[:, 3:]
         self.coords = input[:, :2]
 
     def set_search_range(self):
@@ -922,7 +915,6 @@ class SGWR:
             pos = 0
 
             for i in self.x_chunk:
-
                 sub_Betas[pos] = self.local_fit(i, y, X, bw, final=True)
                 pos += 1
 
@@ -999,14 +991,14 @@ class SGWR:
 
     def optimal_alpah(self):
         data = np.genfromtxt(self.fname, dtype=str, delimiter=',')
-        x_x = data[1:, 2]  ### x coordinate
-        y_y = data[1:, 3]  ### y coordiante
+        x_x = data[1:, 0]  ### x coordinate
+        y_y = data[1:, 1]  ### y coordiante
         # Get header
-        header = data[0, 5:]
+        header = data[0, 3:]
 
-        g_x = data[1:, 5:]
+        g_x = data[1:, 3:]
 
-        g_y = data[1:, 4].reshape(-1, 1)
+        g_y = data[1:, 2].reshape(-1, 1)
 
         scaler = StandardScaler()
         g_x = scaler.fit_transform(g_x)
@@ -1020,57 +1012,19 @@ class SGWR:
 
         columns = header.tolist()
 
-        data = data[1:, 5:]
+        data = data[1:, 3:]
         data = pd.DataFrame(data, columns=columns)
-
-        alphs = [0.5, 0.1, 0.06, 0.02, 0.007, 0.003]
         models = []
         aiccs = []
-        new_alphas = []
-        for bt_value in alphs:
-            alph_determine = ALPHA_OPT(g_coords, g_y, g_x, self.opt_bw, data, columns, self.comm, self.iter, bt_value,
-                                       kernel='gaussian')
-            result = alph_determine.fit_func()
-            aiccV = result.aicc
-            aiccs.append(aiccV)
-            models.append(result)
-            new_alphas.append(bt_value)
-            if bt_value == 0.5:
-                aiccs.append(aiccV)
-                new_alphas.append(bt_value)
-                models.append(result)
-
-            else:
-                if aiccV > aiccs[-2]:
-                    alphs = alphs[:alphs.index(bt_value) + 1]
-                    bt_value = bt_value + alphs[alphs.index(bt_value) - 1] / 2
-                    new_alphas.append(bt_value)
-                    alph_determine = ALPHA_OPT(g_coords, g_y, g_x, self.opt_bw, data, columns, self.comm, self.iter,
-                                               bt_value, kernel='gaussian')
-                    result = alph_determine.fit_func()
-                    aiccV = result.aicc
-                    aiccs.append(aiccV)
-                    models.append(result)
-
-                    break
-                else:
-                    continue
+        bt_value = 0.5
+        alph_determine = ALPHA_OPT(g_coords, g_y, g_x, self.opt_bw, data, columns, self.comm, self.iter, bt_value,
+                                   kernel='gaussian')
+        result = alph_determine.fit_func()
+        aiccV = result.aicc
+        aiccs.append(aiccV)
+        models.append(result)
 
         ind_bt = aiccs.index(min(aiccs))
-        Best_alpha = new_alphas[ind_bt]
-
-        if Best_alpha == 0.5:
-            bt_value = 0.7
-            new_alphas.append(bt_value)
-            alph_determine = ALPHA_OPT(g_coords, g_y, g_x, self.opt_bw, data, columns, self.comm, self.iter, bt_value,
-                                       kernel='gaussian')
-            result = alph_determine.fit_func()
-            aiccV = result.aicc
-            aiccs.append(aiccV)
-            models.append(result)
-
-            ind_bt = aiccs.index(min(aiccs))
-            Best_alpha = new_alphas[ind_bt]
 
         if self.comm.rank == 0:
             selected_model = models[ind_bt]
@@ -1126,7 +1080,8 @@ class SGWR:
             coef_value = selected_model.params
             results = np.concatenate((residuals, coef_value), axis=1)
             header_str = ','.join(header)
+
             header_str = 'Intercept,' + header_str
-            header_str = 'Residual' + header_str
+            header_str = 'Residual,' + header_str
 
             np.savetxt(self.fout, results, delimiter=',', header=header_str, comments='', fmt='%s')
