@@ -1,7 +1,3 @@
-The parallel and serial python packages and the GUI tool of the model can be found:
------------------------------------------------------------------------------------
-- https://github.com/Lessani252/FastSGWR
-  
 Note:
 -----
 In this model, for the geographically weighted matrix a combination of adaptive bisquare and adaptive Gaussian kernel functions are used. For bandwidth optimization, the adaptive bisquare kernel is used. Once the optimal bandwidth is found using adaptive bisquare, it is then used as the number of nearest neighbors (k) for alpha optimization and the final model fitting using gaussian kernel.  
