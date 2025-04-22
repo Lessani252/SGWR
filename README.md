@@ -5,3 +5,4 @@ In the current version, copy and past 'sgwr' folder in your python environment, 
 Data format should be like this in csv file, as also can be seen in the provided datasets: 
 x-coord   y-coord   (dependent variable) (indipendent variables x1, x2, x3, ..............kn). 
 The base code is driven from FastGWR and you can find it via this link (https://github.com/Ziqi-Li/FastGWR). 
+The parallel and serial python package of the model is available here (https://github.com/Lessani252/FastSGWR). Also, the GUI tool that we developed for the model can be found in this repository. 
