@@ -5,7 +5,8 @@ In this model, for the geographically weighted matrix a combination of adaptive 
 Software:
 ---------
 You can easily install the python packages using (pip install sgwr), and then both the serial and parallel versions of the libraries are installed. For GUI use, please download this setup (SGWR_Model_WINDOWS_0.3_setup.exe) from the above and just follow the installation steps. You should be able to run the GUI in your local computer without using any programming. 
-More details are available in this repository: https://github.com/Lessani252/FastSGWR.
+
+More details about how to use the sgwr libraries and GUI are available in this repository: https://github.com/Lessani252/FastSGWR.
 
 Multiscale SGWR:
 ---------
