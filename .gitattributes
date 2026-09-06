@@ -1,1 +1,2 @@
 SGWR_Model_WINDOWS_0.3_setup.exe filter=lfs diff=lfs merge=lfs -text
+SGWR_Model_WINDOWS_0.4_setup.exe filter=lfs diff=lfs merge=lfs -text
