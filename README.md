@@ -6,7 +6,7 @@ Software:
 ---------
 You can easily install the python packages using (pip install sgwr), and then both the serial and parallel versions of the libraries are installed. 
 
-For GUI use, please download this setup (SGWR_Model_WINDOWS_0.3_setup.exe) from the above and just follow the installation steps. You should be able to run the GUI in your local computer without using any programming. 
+For GUI use, please download this setup (SGWR_Model_WINDOWS_0.4_setup.exe) from the above and just follow the installation steps. You should be able to run the GUI in your local computer without using any programming. 
 
 <img width="762" height="526" alt="SGWR" src="https://github.com/user-attachments/assets/318f1c93-5db1-4e3a-b5f1-0c126dc9fdf9" />
 
